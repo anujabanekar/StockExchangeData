@@ -13,6 +13,9 @@ export class StockData extends Component {
   }
 
     static renderForecastsTable(marketsummary) {
+
+        if (marketsummary == null)
+            return;
     return (
       <table className='table table-striped' aria-labelledby="tabelLabel">
         <thead>
@@ -49,7 +52,8 @@ export class StockData extends Component {
 
   async populateStockData() {
     const response = await fetch('stockdata');
-    const data = await response.json();
+      const data = await response.json();
+      
     this.setState({ marketsummary: data, loading: false });
   }
 }
