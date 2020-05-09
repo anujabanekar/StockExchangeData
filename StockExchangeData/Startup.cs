@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using StockExchangeData.Services.Contract;
+using StockExchangeData.Services.Implematation;
+using StockExchangeData.Services.Implementation;
 
 namespace StockExchangeData
 {
@@ -28,6 +31,9 @@ namespace StockExchangeData
             {
                 configuration.RootPath = "ClientApp/build";
             });
+
+            services.AddTransient<IProfileService, ProfileService>();
+            services.AddTransient<IMarketSummaryService, MarketSummaryService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

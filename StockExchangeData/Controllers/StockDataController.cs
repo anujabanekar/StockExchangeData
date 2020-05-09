@@ -12,6 +12,9 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Newtonsoft.Json;
 using RestSharp;
+using StockExchangeData.Models.Mongo;
+using StockExchangeData.Models.Profile;
+using StockExchangeData.Services.Contract;
 
 namespace StockExchangeData.Controllers
 {
@@ -23,20 +26,23 @@ namespace StockExchangeData.Controllers
         private IMemoryCache _cache;
         private readonly HttpClient client = new HttpClient();
         private readonly ILogger<StockDataController> _logger;
+        private readonly IMarketSummaryService _marketSummaryService;
+        private readonly IProfileService _profileService;
 
-        public StockDataController(ILogger<StockDataController> logger, IMemoryCache memoryCache)
+        public StockDataController(ILogger<StockDataController> logger,
+            IMemoryCache memoryCache,
+             IMarketSummaryService marketSummaryService,
+             IProfileService profileService)
         {
             _logger = logger;
             _cache = memoryCache;
+            _marketSummaryService = marketSummaryService;
+            _profileService = profileService;
         }
 
         [HttpGet]
         public async Task<IEnumerable<Result>> GetAsync()
         {
-            string Key = Environment.GetEnvironmentVariable("YahooApiKey", EnvironmentVariableTarget.Machine);
-            string Host = Environment.GetEnvironmentVariable("YahooApiHost", EnvironmentVariableTarget.Machine);
-
-
             HttpResponseMessage marketSummary;
             if (!_cache.TryGetValue("MarketSummary", out marketSummary))
             {
@@ -46,9 +52,8 @@ namespace StockExchangeData.Controllers
                     // Keep in cache for this time, reset time if accessed.
                     .SetSlidingExpiration(TimeSpan.FromSeconds(3000));
 
-                client.DefaultRequestHeaders.Add("x-rapidapi-host", Host);
-                client.DefaultRequestHeaders.Add("x-rapidapi-key", Key);
-                marketSummary = await client.GetAsync("https://apidojo-yahoo-finance-v1.p.rapidapi.com/market/get-summary?region=US&lang=en");
+          
+                marketSummary = await _marketSummaryService.GetMarkeySummaryAsync();
                 
                 _cache.Set("MarketSummary", marketSummary.Content, cacheEntryOptions);
             }
@@ -80,42 +85,56 @@ namespace StockExchangeData.Controllers
 
                 client.DefaultRequestHeaders.Add("x-rapidapi-host", Host);
                 client.DefaultRequestHeaders.Add("x-rapidapi-key", Key);
-                profileData = await client.GetAsync($"https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-summary?region=US&symbol="+ value);
+
+                const string connectionString = "mongodb://localhost:27017";
+                profileData = await _profileService.GetProfileData(value);
 
                 _cache.Set("MarketSummary", profileData.Content, cacheEntryOptions);
-            }
-            if (profileData.IsSuccessStatusCode)
-            {
-                var content = profileData.Content.ReadAsAsync<ProfileData>();
 
-                if(content != null)
+                if (profileData.IsSuccessStatusCode)
                 {
-                    //save to mongodb
+                    var content = profileData.Content.ReadAsAsync<ProfileData>();
 
-
-                    const string connectionString = "mongodb://localhost:27017";
-
-                    // Create a MongoClient object by using the connection string
-                    var client = new MongoClient(connectionString);
-
-                    //Use the MongoClient to access the server
-                    var database = client.GetDatabase("stockexchangedata");
-
-                    //get mongodb collection
-                    var collection = database.GetCollection<Entity>("userprofile");
-
-                    var isPresent = collection.AsQueryable().FirstOrDefault(x => x.Symbol == value) != null; 
-                    if(!isPresent)
+                    if (content != null)
                     {
-                        await collection.InsertOneAsync(new Entity { Symbol = content.Result.Symbol });
-                        return true;
-                    }
+
+                        //save to mongodb
+                        // Create a MongoClient object by using the connection string
+                        var mongoClient = new MongoClient(connectionString);
+
+                        //Use the MongoClient to access the server
+                        var database = mongoClient.GetDatabase("stockexchangedata");
+
+                        //get mongodb collection
+                        var collection = database.GetCollection<Entity>("userprofile");
+
+                        var isPresent = collection.AsQueryable().FirstOrDefault(x => x.Symbol == value) != null;
+                        if (!isPresent)
+                        {
+                            await collection.InsertOneAsync(new Entity
+                            {
+                                Symbol = content.Result.Symbol,
+                                Price = content.Result.Price?.RegularMarketDayHigh?.Raw,
+                                Quantity = 0
+                            });
+                            return true;
+                        }
+                        else
+                        {
+                            var filter = Builders<Entity>.Filter.Eq("Symbol", value);
+                            var update = Builders<Entity>.Update.Set("Price", content.Result.Price?.RegularMarketDayHigh?.Raw);
+                            await collection.UpdateOneAsync(filter, update);
+                        }
                         
+                    }
                 }
+                        
             }
+            
             return false;
         }
 
+        /*TODO Get Live Call*/
         [HttpGet]
         [Route("GetProfileData")]
         public async Task<List<Entity>> GetProfileData()
