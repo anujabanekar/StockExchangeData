@@ -1,26 +1,24 @@
 ﻿import React, { Component } from 'react';
-import EditPopup from './common/EditPopup';
+import Modal from './common/Modal';
 
 export class Dashboard extends Component {
     static displayName = Dashboard.name;
 
     constructor(props) {
         super(props);
-        this.state = { dashboardItems: [], loading: true, showPopup: false };
         this.state = {
-            modal: false,
-            name: "",
-            modalInputName: ""
+            dashboardItems: [], loading: true, show: false, modal: false,
+            purchasePrice: "",
+            quantity: "",
+            symbol: "",
+            name:""
         };
-    }
-
-    componentDidMount() {
-        this.populateStockData();
     }
 
     handleChange(e) {
         const target = e.target;
         const name = target.name;
+
         const value = target.value;
 
         this.setState({
@@ -29,12 +27,12 @@ export class Dashboard extends Component {
     }
 
     handleSubmit(e) {
-        this.setState({ name: this.state.modalInputName });
         this.modalClose();
+        this.editItem(e);
     }
 
-    modalOpen() {
-        this.setState({ modal: true });
+    modalOpen(symbol) {
+        this.setState({ modal: true, symbol: symbol, quantity : "", purchasePrice : "" });
     }
 
     modalClose() {
@@ -44,13 +42,13 @@ export class Dashboard extends Component {
         });
     }
 
-    togglePopup() {
-        this.setState({
-            showPopup: !this.state.showPopup
-        });
+    componentDidMount() {
+        this.populateStockData();
     }
 
-    static renderForecastsTable(dashboardItems) {
+
+
+    renderForecastsTable(dashboardItems) {
 
         if (dashboardItems == null)
             return;
@@ -69,9 +67,14 @@ export class Dashboard extends Component {
                         <tr key={m.symbol}>
                             <td>{m.symbol}</td>
                             <td>{m.price}</td>
-                            <td>{m.quantity}</td>
+                            <td>{m.totalquantity}</td>
                             <td>
-                                <button onClick={this.togglePopup}> Click To Launch Popup</button>
+                                <div className="form-group">
+                                    <button onClick={e => this.modalOpen(m.symbol)} type="button">
+                                        Open Modal
+                                    </button>
+                                </div>
+
                             </td>
                         </tr>
                     )}
@@ -81,10 +84,12 @@ export class Dashboard extends Component {
         );
     }
 
+
+
     render() {
         let contents = this.state.loading
             ? <p><em>Loading...</em></p>
-            : Dashboard.renderForecastsTable(this.state.dashboardItems);
+            : this.renderForecastsTable(this.state.dashboardItems);
 
         return (
 
@@ -101,29 +106,57 @@ export class Dashboard extends Component {
                                     type="text"
                                     className="input"
                                     id="addInput"
-                                    id="addInput"
                                     placeholder="Add stock name."
                                 />
                                 <button className="button is-info" onClick={this.addItem}>
-                                    Add Item    
+                                    Add Item
                                 </button>
-                                <div>
-
-                                    {this.state.showPopup ?
-                                        <EditPopup
-                                            text='Click "Close Button" to hide popup'
-                                            closePopup={this.togglePopup.bind(this)}
-                                        />
-                                        : null
-                                    }
-                                </div>  
                             </form>
                         </section>
                         {contents}
                     </div>
-                  
+                    <div>
+                        <Modal show={this.state.modal} handleClose={e => this.modalClose(e)} children={this.state.symbol} >
+                            <h2>Hello Modal</h2>
+                            <form className="form" id="editItemForm">
+                                <div className="form-group">
+                                    <label>Stock name: </label>
+                                    <input
+                                        type="text"
+                                        value={this.state.symbol}
+                                        disabled
+                                    />
 
+                                </div>
+                                <div className="form-group">
+                                    <label>Enter Quantity:</label>
+                                    <input
+                                        name="quantity"
+                                        type="text"
+                                        value={this.state.quantity}
+                                        className="input"
+                                        onChange={e => this.handleChange(e)}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Enter Purchase Price:</label>
+                                    <input
+                                        name="purchasePrice"
+                                        type="text"
+                                        value={this.state.purchasePrice}
+                                        className="input"
+                                        onChange={e => this.handleChange(e)}
+                                    />
+                                </div>
 
+                                <div className="button is-info">
+                                    <button onClick={e => this.handleSubmit(e)} type="button">
+                                        Save
+                                </button>
+                                </div>
+                            </form>
+                        </Modal>
+                    </div>
                 </div>
             </div>
         );
@@ -158,18 +191,14 @@ export class Dashboard extends Component {
     async editItem(e) {
         // Prevent button click from submitting form
         e.preventDefault();
-
         // Create variables for our list, the item to add, and our form
         //  let list = this.state.dashboardItems;
-        const newItem = document.getElementById("addInput");
-
+        //  var url = 'api/stockdata/EditQuantity/' + this.state.symbol + ' / ' + this.state.quantity;
         // If our input has a value
-        if (newItem.value !== "") {
+        if (this.state.quantity !== "" && this.state.symbol !== "" && this.state.purchasePrice !== "") {
 
-            var success = await fetch('api/stockdata/AddToDashBoard/' + newItem.value);
-            if (success) {
-                window.location.reload(true);
-            }
+            var success = await fetch('api/stockdata/EditQuantity/' + this.state.symbol + '/' + this.state.quantity + '/' + this.state.purchasePrice);
+
 
         }
     }

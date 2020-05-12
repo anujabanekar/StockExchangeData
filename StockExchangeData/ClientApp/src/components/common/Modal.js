@@ -1,4 +1,5 @@
 ﻿import React from "react";
+import "./style.css";
 
 const Modal = ({ handleClose, show, children }) => {
     const showHideClassName = show ? "modal d-block" : "modal d-none";
@@ -7,9 +8,9 @@ const Modal = ({ handleClose, show, children }) => {
         <div className={showHideClassName}>
             <div className="modal-container">
                 {children}
-                /*<a href="javascript:;" className="modal-close" onClick={handleClose}>
+                <a href="" className="modal-close" onClick={handleClose}>
                     close
-                </a>*/
+                </a>
             </div>
         </div>
     );

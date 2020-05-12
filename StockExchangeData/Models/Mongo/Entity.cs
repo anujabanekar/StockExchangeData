@@ -13,7 +13,9 @@ namespace StockExchangeData.Models.Mongo
 
         public decimal? Price { get; set; }
 
-        public int Quantity { get; set; }
+        public int TotalQuantity { get; set; }
+
+        public List<Purchase> AddPurchase { get; set; }
 
         public decimal TotalPrice { get; set; }
     }

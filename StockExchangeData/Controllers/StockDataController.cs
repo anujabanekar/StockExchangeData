@@ -28,16 +28,19 @@ namespace StockExchangeData.Controllers
         private readonly ILogger<StockDataController> _logger;
         private readonly IMarketSummaryService _marketSummaryService;
         private readonly IProfileService _profileService;
+        private readonly IMongoClientService _mongoClientService;
 
         public StockDataController(ILogger<StockDataController> logger,
             IMemoryCache memoryCache,
              IMarketSummaryService marketSummaryService,
-             IProfileService profileService)
+             IProfileService profileService,
+             IMongoClientService mongoClientService)
         {
             _logger = logger;
             _cache = memoryCache;
             _marketSummaryService = marketSummaryService;
             _profileService = profileService;
+            _mongoClientService = mongoClientService;
         }
 
         [HttpGet]
@@ -115,8 +118,8 @@ namespace StockExchangeData.Controllers
                             {
                                 Symbol = content.Result.Symbol,
                                 Price = content.Result.Price?.RegularMarketDayHigh?.Raw,
-                                Quantity = 0
-                            });
+                                AddPurchase = new List<Purchase>()
+                            }); ;
                             return true;
                         }
                         else
@@ -149,6 +152,25 @@ namespace StockExchangeData.Controllers
             //get mongodb collection
             var collection = database.GetCollection<Entity>("userprofile");
             return await collection.Find(new BsonDocument()).ToListAsync();
+        }
+
+
+        [HttpGet]
+        [Route("EditQuantity/{symbol}/{quantity}/{purchasePrice}")]
+        public async Task<bool> EditQuantity(string symbol, string quantity, string purchasePrice)
+        {
+            try
+            {
+                return await _mongoClientService.UpdateUserProfilePurchaseData(symbol, quantity, purchasePrice);
+            }
+            catch(Exception e)
+            {
+                _logger.LogError($"Cannot update quantity for given symbol {symbol}");
+                
+            }
+            
+
+            return false;
         }
     }
 }
