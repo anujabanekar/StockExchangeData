@@ -13,6 +13,8 @@ export class Dashboard extends Component {
             symbol: "",
             name:""
         };
+        this.populateStockData = this.populateStockData.bind(this);
+        this.addItem = this.addItem.bind(this);
     }
 
     handleChange(e) {
@@ -67,7 +69,7 @@ export class Dashboard extends Component {
                         <tr key={m.symbol}>
                             <td>{m.symbol}</td>
                             <td>{m.price}</td>
-                            <td>{m.totalquantity}</td>
+                            <td>{m.totalQuantity}</td>
                             <td>
                                 <div className="form-group">
                                     <button onClick={e => this.modalOpen(m.symbol)} type="button">
@@ -167,6 +169,11 @@ export class Dashboard extends Component {
         const data = await response.json();
 
         this.setState({ dashboardItems: data, loading: false });
+/*
+        axios.get(await `api/stockdata/GetProfileData`)
+            .then(res => {
+                this.setState({ dashboardItems: res, loading: false});
+            });*/
     }
 
     async addItem(e) {
@@ -182,7 +189,7 @@ export class Dashboard extends Component {
 
             var success = await fetch('api/stockdata/AddToDashBoard/' + newItem.value);
             if (success) {
-                window.location.reload(true);
+                this.populateStockData();
             }
 
         }
