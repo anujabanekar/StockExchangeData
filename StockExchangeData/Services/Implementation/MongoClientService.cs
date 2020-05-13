@@ -33,11 +33,13 @@ namespace StockExchangeData.Services.Implementation
                 var result = await collection.Find(filter).ToListAsync();
 
                 var totalQuantity = 0;
+                decimal totalPrice = 0;
                 if (result.Count > 0)
                 {
                     foreach (var document in result)
                     {
                         totalQuantity = document.TotalQuantity + Int32.Parse(quantity);
+                        totalPrice = document.TotalPrice +  (Convert.ToDecimal(purchasePrice) * int.Parse(quantity)) ;
 
 
                         var purchase =
@@ -48,7 +50,8 @@ namespace StockExchangeData.Services.Implementation
                             };
                         var update = Builders<Entity>.Update
                             .AddToSet<Purchase>(e => e.AddPurchase, purchase)
-                             .Set(x => x.TotalQuantity, totalQuantity);
+                             .Set(x => x.TotalQuantity, totalQuantity)
+                             .Set(x => x.TotalPrice, totalPrice);
                         await collection.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true });
                     }
                 }

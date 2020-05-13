@@ -11,7 +11,9 @@ export class Dashboard extends Component {
             purchasePrice: "",
             quantity: "",
             symbol: "",
-            name:""
+            name: "",
+            portfolio: "",
+            calculatePortfolioValueFlag: true
         };
         this.populateStockData = this.populateStockData.bind(this);
         this.addItem = this.addItem.bind(this);
@@ -46,9 +48,7 @@ export class Dashboard extends Component {
 
     componentDidMount() {
         this.populateStockData();
-    }
-
-
+    }    
 
     renderForecastsTable(dashboardItems) {
 
@@ -60,8 +60,9 @@ export class Dashboard extends Component {
                 <thead>
                     <tr>
                         <th>Symbol. </th>
-                        <th>Price. </th>
-                        <th>Quantity. </th>
+                        <th>Current Price. </th>
+                        <th>Total Quantity. </th>
+                        <th>Total Price. </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -70,10 +71,11 @@ export class Dashboard extends Component {
                             <td>{m.symbol}</td>
                             <td>{m.price}</td>
                             <td>{m.totalQuantity}</td>
+                            <td>${m.totalPrice}</td>
                             <td>
                                 <div className="form-group">
                                     <button onClick={e => this.modalOpen(m.symbol)} type="button">
-                                        Open Modal
+                                        +
                                     </button>
                                 </div>
 
@@ -93,15 +95,19 @@ export class Dashboard extends Component {
             ? <p><em>Loading...</em></p>
             : this.renderForecastsTable(this.state.dashboardItems);
 
+
         return (
 
 
             <div className="content">
                 <div className="container">
                     <div>
-                        <h1 id="tabelLabel" >Stock Profile Summaries</h1>
+                        <div>
+                            <h1 id="tabelLabel" >Portfolio Value : ${this.state.portfolio}</h1>                           
+                        </div>
                         <p>This component demonstrates fetching data from the server.</p>
-
+                        
+                        
                         <section className="section">
                             <form className="form" id="addItemForm">
                                 <input
@@ -111,11 +117,12 @@ export class Dashboard extends Component {
                                     placeholder="Add stock name."
                                 />
                                 <button className="button is-info" onClick={this.addItem}>
-                                    Add Item
+                                    +
                                 </button>
                             </form>
                         </section>
-                        {contents}
+                        {contents}                       
+                        
                     </div>
                     <div>
                         <Modal show={this.state.modal} handleClose={e => this.modalClose(e)} children={this.state.symbol} >
@@ -168,12 +175,19 @@ export class Dashboard extends Component {
         const response = await fetch('api/stockdata/GetProfileData');
         const data = await response.json();
 
-        this.setState({ dashboardItems: data, loading: false });
-/*
-        axios.get(await `api/stockdata/GetProfileData`)
-            .then(res => {
-                this.setState({ dashboardItems: res, loading: false});
-            });*/
+        this.setState({ dashboardItems: data, loading: false, calculatePortfolioValueFlag: false });
+
+        this.calculatePortfolioValue();
+    }
+
+    calculatePortfolioValue() {
+
+        const items = this.state.dashboardItems;
+
+        const totalPrice = items.reduce((totalPrice, item) => totalPrice + item.totalPrice, 0);
+
+        console.log(totalPrice); 
+        this.setState({ portfolio: totalPrice});
     }
 
     async addItem(e) {
@@ -182,17 +196,19 @@ export class Dashboard extends Component {
 
         // Create variables for our list, the item to add, and our form
         //  let list = this.state.dashboardItems;
-        const newItem = document.getElementById("addInput");
-
+        const stockName = document.getElementById("addInput");
         // If our input has a value
-        if (newItem.value !== "") {
+        if (stockName.value !== "") {
 
-            var success = await fetch('api/stockdata/AddToDashBoard/' + newItem.value);
+            var success = await fetch('api/stockdata/AddToDashBoard/' + stockName.value);
             if (success) {
                 this.populateStockData();
             }
 
         }
+
+        //set txt to empty
+        document.getElementById("addInput").value = "";
     }
 
     async editItem(e) {
@@ -206,7 +222,9 @@ export class Dashboard extends Component {
 
             var success = await fetch('api/stockdata/EditQuantity/' + this.state.symbol + '/' + this.state.quantity + '/' + this.state.purchasePrice);
 
-
+            if (success) {
+                this.populateStockData();
+            }
         }
     }
 }

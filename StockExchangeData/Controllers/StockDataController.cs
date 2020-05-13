@@ -154,6 +154,20 @@ namespace StockExchangeData.Controllers
             return await collection.Find(new BsonDocument()).ToListAsync();
         }
 
+        [HttpGet]
+        [Route("GetPortfolioValue/{json}")]
+        public decimal? GetPortfolioValue(string json)
+        {
+            var entities = JsonConvert.DeserializeObject<List<Entity>>(json);
+            decimal? value = 0.0m;
+            foreach (var purchase in entities.SelectMany(entity => entity.AddPurchase))
+            {
+                value += purchase.PurchasePrice * purchase.Quantity;
+            }
+
+            return value;
+        }
+
 
         [HttpGet]
         [Route("EditQuantity/{symbol}/{quantity}/{purchasePrice}")]
