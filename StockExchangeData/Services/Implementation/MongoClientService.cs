@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson;
+﻿using Microsoft.CodeAnalysis;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using StockExchangeData.Models.Mongo;
 using StockExchangeData.Services.Contract;
@@ -45,6 +46,7 @@ namespace StockExchangeData.Services.Implementation
                         var purchase =
                             new Purchase
                             {
+                                Id = ObjectId.GenerateNewId(),
                                 PurchasePrice = Convert.ToDecimal(purchasePrice),
                                 Quantity = Int32.Parse(quantity)
                             };
@@ -62,8 +64,47 @@ namespace StockExchangeData.Services.Implementation
                 return false;
 
             }
+        }
+
+        public async Task<List<Entity>> GetStockInformationAsync(string symbol)
+        {
+            try
+            {
+                var collection = database.GetCollection<Entity>("userprofile");
+                var filter = Builders<Entity>.Filter.Eq("Symbol", symbol);
+
+                return await collection.Find(filter).ToListAsync();
+
+            }
+            catch (Exception e)
+            {
+                return null;
+            }
 
 
         }
-    }
+
+        public async Task<bool> DeleteStockPurchaseAsync(string symbol, ObjectId id)
+        {
+            try
+            {
+                var collection = database.GetCollection<Entity>("userprofile");
+
+                var filter = Builders<Entity>.Filter.Eq("Symbol", symbol);
+                var update = Builders<Entity>.Update.PullFilter(p => p.AddPurchase,
+                       Builders<Purchase>.Filter.Eq(per => per.Id, id));
+
+                var result = collection
+                    .FindOneAndUpdateAsync(filter, update).Result;
+
+                return true;
+
+            }
+            catch (Exception e)
+            {
+                return false;
+            }
+        }
+    }  
+
 }

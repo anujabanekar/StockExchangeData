@@ -155,17 +155,19 @@ namespace StockExchangeData.Controllers
         }
 
         [HttpGet]
-        [Route("GetPortfolioValue/{json}")]
-        public decimal? GetPortfolioValue(string json)
+        [Route("GetPortfolioValue/{symbol}")]
+        public async Task<List<Entity>> GetStockInformationAsync(string symbol)
         {
-            var entities = JsonConvert.DeserializeObject<List<Entity>>(json);
-            decimal? value = 0.0m;
-            foreach (var purchase in entities.SelectMany(entity => entity.AddPurchase))
-            {
-                value += purchase.PurchasePrice * purchase.Quantity;
-            }
+            var result = await _mongoClientService.GetStockInformationAsync(symbol);
+            return result;
+        }
 
-            return value;
+        [HttpGet]
+        [Route("DeleteStockPurchase/{symbol}/{id}")]
+        public async Task<bool> DeleteStockPurchase(string symbol, string id)
+        {
+            //return false;
+            return await _mongoClientService.DeleteStockPurchaseAsync(symbol, new ObjectId(id));
         }
 
 

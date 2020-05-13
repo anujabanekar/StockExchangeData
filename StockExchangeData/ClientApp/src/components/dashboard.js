@@ -13,10 +13,14 @@ export class Dashboard extends Component {
             symbol: "",
             name: "",
             portfolio: "",
-            calculatePortfolioValueFlag: true
+            calculatePortfolioValueFlag: true,
+            editStockFlag: false,
+            stockData: null
         };
         this.populateStockData = this.populateStockData.bind(this);
         this.addItem = this.addItem.bind(this);
+        this.getStockInformation = this.getStockInformation.bind(this);
+        this.deleteStockValue = this.deleteStockValue.bind(this);
     }
 
     handleChange(e) {
@@ -36,19 +40,25 @@ export class Dashboard extends Component {
     }
 
     modalOpen(symbol) {
-        this.setState({ modal: true, symbol: symbol, quantity : "", purchasePrice : "" });
+        this.setState({ modal: true, symbol: symbol, quantity: "", purchasePrice: "" });
+    }
+
+    stockmodalOpen(symbol) {
+        this.setState({ editStockFlag: true, symbol: symbol });
+        this.getStockInformation(symbol);
     }
 
     modalClose() {
         this.setState({
             modalInputName: "",
-            modal: false
+            modal: false,
+            editStockFlag: false
         });
     }
 
     componentDidMount() {
         this.populateStockData();
-    }    
+    }
 
     renderForecastsTable(dashboardItems) {
 
@@ -68,7 +78,9 @@ export class Dashboard extends Component {
                 <tbody>
                     {dashboardItems.map(m =>
                         <tr key={m.symbol}>
-                            <td>{m.symbol}</td>
+                            <td><a href onClick={e => this.stockmodalOpen(m.symbol)} type="button">
+                                {m.symbol}
+                            </a></td>
                             <td>{m.price}</td>
                             <td>{m.totalQuantity}</td>
                             <td>${m.totalPrice}</td>
@@ -95,19 +107,16 @@ export class Dashboard extends Component {
             ? <p><em>Loading...</em></p>
             : this.renderForecastsTable(this.state.dashboardItems);
 
-
         return (
-
-
             <div className="content">
                 <div className="container">
                     <div>
                         <div>
-                            <h1 id="tabelLabel" >Portfolio Value : ${this.state.portfolio}</h1>                           
+                            <h1 id="tabelLabel" >Portfolio Value : ${this.state.portfolio}</h1>
                         </div>
                         <p>This component demonstrates fetching data from the server.</p>
-                        
-                        
+
+
                         <section className="section">
                             <form className="form" id="addItemForm">
                                 <input
@@ -121,8 +130,8 @@ export class Dashboard extends Component {
                                 </button>
                             </form>
                         </section>
-                        {contents}                       
-                        
+                        {contents}
+
                     </div>
                     <div>
                         <Modal show={this.state.modal} handleClose={e => this.modalClose(e)} children={this.state.symbol} >
@@ -166,10 +175,49 @@ export class Dashboard extends Component {
                             </form>
                         </Modal>
                     </div>
+
+                    <div>
+                        {this.state.stockData != null && this.state.stockData.map(m =>
+                            <Modal show={this.state.editStockFlag} handleClose={e => this.modalClose(e)}  >
+                                <h2>{m.symbol} Stock Info</h2>
+                                <form className="form" id="editItemForm">
+                                    <table className='table table-striped' aria-labelledby="tabelLabel">
+                                        <thead>
+                                            <tr>
+                                                <th>Quantity. </th>
+                                                <th>Price. </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {m.addPurchase.map(purchase =>
+                                                <tr key={purchase.quantity}>
+                                                    <td>{purchase.quantity}</td>
+                                                    <td>${purchase.purchasePrice}</td>   
+                                                    <td>
+                                                        {console.log(purchase.key)}
+                                                        <div className="form-group">
+                                                            <button onClick={e => this.deleteStockValue(m.symbol, purchase.key)} type="button">
+                                                                -
+                                                            </button>
+                                                        </div>
+
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>                                 
+                                  
+
+                                </form>
+                            </Modal>
+                        )}
+                    </div>
                 </div>
             </div>
         );
     }
+
+
 
     async populateStockData() {
         const response = await fetch('api/stockdata/GetProfileData');
@@ -180,14 +228,33 @@ export class Dashboard extends Component {
         this.calculatePortfolioValue();
     }
 
+    async getStockInformation(symbol) {
+        const response = await fetch('api/stockdata/GetPortfolioValue/' + symbol);
+        const data = await response.json();
+        console.log(data);
+        this.setState({ stockData: data });
+    }
+
+    async deleteStockValue(symbol, id) {
+
+        console.log(id);
+        const response = await fetch('api/stockdata/DeleteStockPurchase/' + symbol + '/' + id);
+        const data = await response.json();
+
+        if (data) {
+            this.getStockInformation(symbol);
+        }
+
+    }
+
     calculatePortfolioValue() {
 
         const items = this.state.dashboardItems;
 
         const totalPrice = items.reduce((totalPrice, item) => totalPrice + item.totalPrice, 0);
 
-        console.log(totalPrice); 
-        this.setState({ portfolio: totalPrice});
+        console.log(totalPrice);
+        this.setState({ portfolio: totalPrice });
     }
 
     async addItem(e) {

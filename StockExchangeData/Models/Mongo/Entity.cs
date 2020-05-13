@@ -8,7 +8,7 @@ namespace StockExchangeData.Models.Mongo
 {
     public class Entity
     {
-        public ObjectId _id { get; set; }
+        public ObjectId Id { get; set; }
         public string Symbol { get; set; }
 
         public decimal? Price { get; set; }
