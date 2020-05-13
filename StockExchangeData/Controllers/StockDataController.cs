@@ -114,19 +114,18 @@ namespace StockExchangeData.Controllers
                         var isPresent = collection.AsQueryable().FirstOrDefault(x => x.Symbol == value) != null;
                         if (!isPresent)
                         {
-                            await collection.InsertOneAsync(new Entity
+                            var entity = new Entity
                             {
                                 Symbol = content.Result.Symbol,
                                 Price = content.Result.Price?.RegularMarketDayHigh?.Raw,
                                 AddPurchase = new List<Purchase>()
-                            }); ;
-                            return true;
+                            };
+                            
+                            return await _mongoClientService.InsertToUserProfileAsync(entity);
                         }
                         else
                         {
-                            var filter = Builders<Entity>.Filter.Eq("Symbol", value);
-                            var update = Builders<Entity>.Update.Set("Price", content.Result.Price?.RegularMarketDayHigh?.Raw);
-                            await collection.UpdateOneAsync(filter, update);
+                            await _mongoClientService.UpsertToUserProfileAsync(value, content.Result.Price?.RegularMarketDayHigh?.Raw);
                         }
                         
                     }

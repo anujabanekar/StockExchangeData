@@ -39,8 +39,8 @@ namespace StockExchangeData.Services.Implementation
                 {
                     foreach (var document in result)
                     {
-                        totalQuantity = document.TotalQuantity + Int32.Parse(quantity);
-                        totalPrice = document.TotalPrice +  (Convert.ToDecimal(purchasePrice) * int.Parse(quantity)) ;
+                        totalQuantity = document.AddPurchase.Sum(x => x.Quantity);
+                        totalPrice = totalQuantity * document.AddPurchase.Sum(x => x.PurchasePrice) + Int32.Parse(quantity)* Convert.ToDecimal(purchasePrice);
 
 
                         var purchase =
@@ -52,7 +52,7 @@ namespace StockExchangeData.Services.Implementation
                             };
                         var update = Builders<Entity>.Update
                             .AddToSet<Purchase>(e => e.AddPurchase, purchase)
-                             .Set(x => x.TotalQuantity, totalQuantity)
+                             .Set(x => x.TotalQuantity, totalQuantity+ Int32.Parse(quantity))
                              .Set(x => x.TotalPrice, totalPrice);
                         await collection.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true });
                     }
@@ -101,6 +101,39 @@ namespace StockExchangeData.Services.Implementation
 
             }
             catch (Exception e)
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> InsertToUserProfileAsync(Entity entity)
+        {
+            try
+            {
+                var collection = database.GetCollection<Entity>("userprofile");
+                await collection.InsertOneAsync(entity);
+
+                return true;
+            }
+            catch(Exception ex)
+            {
+                return false;
+            }            
+        }
+
+        public async Task<bool> UpsertToUserProfileAsync(string symbol, decimal? price )
+        {
+            try
+            {
+                var collection = database.GetCollection<Entity>("userprofile");
+
+                var filter = Builders<Entity>.Filter.Eq("Symbol", symbol);
+                var update = Builders<Entity>.Update.Set("Price", price);
+                await collection.UpdateOneAsync(filter, update);
+
+                return true;
+            }
+            catch (Exception ex)
             {
                 return false;
             }

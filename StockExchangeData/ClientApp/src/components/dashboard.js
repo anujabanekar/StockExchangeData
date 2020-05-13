@@ -35,7 +35,7 @@ export class Dashboard extends Component {
     }
 
     handleSubmit(e) {
-        this.modalClose();
+        this.modalClose(e);
         this.editItem(e);
     }
 
@@ -43,12 +43,13 @@ export class Dashboard extends Component {
         this.setState({ modal: true, symbol: symbol, quantity: "", purchasePrice: "" });
     }
 
-    stockmodalOpen(symbol) {
+    stockmodalOpen(e, symbol) {
         this.setState({ editStockFlag: true, symbol: symbol });
-        this.getStockInformation(symbol);
+        this.getStockInformation(e, symbol);
     }
 
-    modalClose() {
+    modalClose(e) {
+        e.preventDefault();
         this.setState({
             modalInputName: "",
             modal: false,
@@ -78,7 +79,7 @@ export class Dashboard extends Component {
                 <tbody>
                     {dashboardItems.map(m =>
                         <tr key={m.symbol}>
-                            <td><a href onClick={e => this.stockmodalOpen(m.symbol)} type="button">
+                            <td><a href onClick={e => this.stockmodalOpen(e, m.symbol)} type="button">
                                 {m.symbol}
                             </a></td>
                             <td>{m.price}</td>
@@ -196,7 +197,7 @@ export class Dashboard extends Component {
                                                     <td>
                                                         {console.log(purchase.key)}
                                                         <div className="form-group">
-                                                            <button onClick={e => this.deleteStockValue(m.symbol, purchase.key)} type="button">
+                                                            <button onClick={e => this.deleteStockValue(e, m.symbol, purchase.key)} type="button">
                                                                 -
                                                             </button>
                                                         </div>
@@ -228,21 +229,23 @@ export class Dashboard extends Component {
         this.calculatePortfolioValue();
     }
 
-    async getStockInformation(symbol) {
+    async getStockInformation(e, symbol) {
+        e.preventDefault();
         const response = await fetch('api/stockdata/GetPortfolioValue/' + symbol);
         const data = await response.json();
         console.log(data);
         this.setState({ stockData: data });
     }
 
-    async deleteStockValue(symbol, id) {
-
+    async deleteStockValue(e, symbol, id) {
+        e.preventDefault();
         console.log(id);
         const response = await fetch('api/stockdata/DeleteStockPurchase/' + symbol + '/' + id);
         const data = await response.json();
 
         if (data) {
             this.getStockInformation(symbol);
+            this.calculatePortfolioValue();
         }
 
     }

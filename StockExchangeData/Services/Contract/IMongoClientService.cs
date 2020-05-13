@@ -14,5 +14,8 @@ namespace StockExchangeData.Services.Contract
 
         Task<List<Entity>> GetStockInformationAsync(string symbol);
         Task<bool> DeleteStockPurchaseAsync(string symbol, ObjectId id);
+        Task<bool> InsertToUserProfileAsync(Entity entity);
+
+        Task<bool> UpsertToUserProfileAsync(string symbol, decimal? price);
     }
 }
