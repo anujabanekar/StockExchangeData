@@ -15,7 +15,8 @@ export class Dashboard extends Component {
             portfolio: "",
             calculatePortfolioValueFlag: true,
             editStockFlag: false,
-            stockData: null
+            stockData: null,
+            addType: ""
         };
         this.populateStockData = this.populateStockData.bind(this);
         this.addItem = this.addItem.bind(this);
@@ -36,11 +37,19 @@ export class Dashboard extends Component {
 
     handleSubmit(e) {
         this.modalClose(e);
-        this.editItem(e);
+
+        if (this.state.addType == "addPurchase") {
+            this.addPurchaseQuantity(e);
+        }
+
+        if (this.state.addType == "sellPurchase") {
+            this.sellPurchaseQuantity(e);
+        }
+        
     }
 
-    modalOpen(symbol) {
-        this.setState({ modal: true, symbol: symbol, quantity: "", purchasePrice: "" });
+    modalOpen(symbol, addType) {
+        this.setState({ modal: true, symbol: symbol, quantity: "", purchasePrice: "", addType: addType });
     }
 
     stockmodalOpen(e, symbol) {
@@ -72,8 +81,6 @@ export class Dashboard extends Component {
                     <tr>
                         <th>Symbol. </th>
                         <th>Current Price. </th>
-                        <th>Total Quantity. </th>
-                        <th>Total Price. </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -83,15 +90,15 @@ export class Dashboard extends Component {
                                 {m.symbol}
                             </a></td>
                             <td>{m.price}</td>
-                            <td>{m.totalQuantity}</td>
-                            <td>${m.totalPrice}</td>
                             <td>
                                 <div className="form-group">
-                                    <button onClick={e => this.modalOpen(m.symbol)} type="button">
+                                    <button onClick={e => this.modalOpen(m.symbol, "addPurchase")} type="button">
                                         +
                                     </button>
+                                    <button onClick={e => this.modalOpen(m.symbol, "sellPurchase")} type="button">
+                                        -
+                                    </button>
                                 </div>
-
                             </td>
                         </tr>
                     )}
@@ -136,7 +143,7 @@ export class Dashboard extends Component {
                     </div>
                     <div>
                         <Modal show={this.state.modal} handleClose={e => this.modalClose(e)} children={this.state.symbol} >
-                            <h2>Hello Modal</h2>
+                            <h2>Add Purchase</h2>
                             <form className="form" id="editItemForm">
                                 <div className="form-group">
                                     <label>Stock name: </label>
@@ -183,13 +190,16 @@ export class Dashboard extends Component {
                                 <h2>{m.symbol} Stock Info</h2>
                                 <form className="form" id="editItemForm">
                                     <table className='table table-striped' aria-labelledby="tabelLabel">
+
                                         <thead>
                                             <tr>
                                                 <th>Quantity. </th>
                                                 <th>Price. </th>
                                             </tr>
                                         </thead>
-                                        <tbody>
+
+                                        <h4>Purchase History</h4>
+                                        <tbody>                                            
                                             {m.addPurchase.map(purchase =>
                                                 <tr key={purchase.quantity}>
                                                     <td>{purchase.quantity}</td>
@@ -205,6 +215,27 @@ export class Dashboard extends Component {
                                                     </td>
                                                 </tr>
                                             )}
+
+                                        </tbody>
+
+                                        <h4>Sell History</h4>
+                                        <tbody>
+                                            {m.soldStock.map(purchase =>
+                                                <tr key={purchase.quantity}>
+                                                    <td>{purchase.quantity}</td>
+                                                    <td>${purchase.purchasePrice}</td>
+                                                    <td>
+                                                        {console.log(purchase.key)}
+                                                        <div className="form-group">
+                                                            <button onClick={e => this.deleteStockValue(e, m.symbol, purchase.key)} type="button">
+                                                                -
+                                                            </button>
+                                                        </div>
+
+                                                    </td>
+                                                </tr>
+                                            )}
+
                                         </tbody>
                                     </table>                                 
                                   
@@ -278,7 +309,7 @@ export class Dashboard extends Component {
         document.getElementById("addInput").value = "";
     }
 
-    async editItem(e) {
+    async addPurchaseQuantity(e) {
         // Prevent button click from submitting form
         e.preventDefault();
         // Create variables for our list, the item to add, and our form
@@ -287,7 +318,24 @@ export class Dashboard extends Component {
         // If our input has a value
         if (this.state.quantity !== "" && this.state.symbol !== "" && this.state.purchasePrice !== "") {
 
-            var success = await fetch('api/stockdata/EditQuantity/' + this.state.symbol + '/' + this.state.quantity + '/' + this.state.purchasePrice);
+            var success = await fetch('api/stockdata/AddPurchaseQuantity/' + this.state.symbol + '/' + this.state.quantity + '/' + this.state.purchasePrice);
+
+            if (success) {
+                this.populateStockData();
+            }
+        }
+    }
+
+    async sellPurchaseQuantity(e) {
+        // Prevent button click from submitting form
+        e.preventDefault();
+        // Create variables for our list, the item to add, and our form
+        //  let list = this.state.dashboardItems;
+        //  var url = 'api/stockdata/EditQuantity/' + this.state.symbol + ' / ' + this.state.quantity;
+        // If our input has a value
+        if (this.state.quantity !== "" && this.state.symbol !== "" && this.state.purchasePrice !== "") {
+
+            var success = await fetch('api/stockdata/SellPurchaseQuantity/' + this.state.symbol + '/' + this.state.quantity + '/' + this.state.purchasePrice);
 
             if (success) {
                 this.populateStockData();

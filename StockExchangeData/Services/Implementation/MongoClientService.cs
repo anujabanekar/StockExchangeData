@@ -24,7 +24,7 @@ namespace StockExchangeData.Services.Implementation
             database = mongoClient.GetDatabase("stockexchangedata");
         }
 
-        public async Task<bool> UpdateUserProfilePurchaseData(string symbol, string quantity, string purchasePrice)
+        public async Task<bool> UpdateUserProfilePurchaseData(string symbol, string quantity, string purchasePrice, string addType)
         {
             try
             {
@@ -39,21 +39,37 @@ namespace StockExchangeData.Services.Implementation
                 {
                     foreach (var document in result)
                     {
-                        totalQuantity = document.AddPurchase.Sum(x => x.Quantity);
-                        totalPrice = totalQuantity * document.AddPurchase.Sum(x => x.PurchasePrice) + Int32.Parse(quantity)* Convert.ToDecimal(purchasePrice);
+                       // totalQuantity = document.AddPurchase.Sum(x => x.Quantity);
+                       
 
-
-                        var purchase =
-                            new Purchase
-                            {
-                                Id = ObjectId.GenerateNewId(),
-                                PurchasePrice = Convert.ToDecimal(purchasePrice),
-                                Quantity = Int32.Parse(quantity)
-                            };
-                        var update = Builders<Entity>.Update
+                        UpdateDefinition<Entity> update = null;
+                        var purchase = new Purchase
+                        {
+                            Id = ObjectId.GenerateNewId(),
+                            PurchasePrice = Convert.ToDecimal(purchasePrice),
+                            Quantity = Int32.Parse(quantity)
+                        };
+                        if (addType == "addToPurchase")
+                        {
+                            totalQuantity = document.TotalQuantity + Int32.Parse(quantity);
+                            totalPrice = document.TotalPrice + Int32.Parse(quantity) * Convert.ToDecimal(purchasePrice);
+                            //totalQuantity * document.AddPurchase.Sum(x => x.PurchasePrice) + Int32.Parse(quantity) * Convert.ToDecimal(purchasePrice);
+                            update = Builders<Entity>.Update
                             .AddToSet<Purchase>(e => e.AddPurchase, purchase)
-                             .Set(x => x.TotalQuantity, totalQuantity+ Int32.Parse(quantity))
+                             .Set(x => x.TotalQuantity, totalQuantity)
                              .Set(x => x.TotalPrice, totalPrice);
+                        }
+                        else if (addType == "sellToPurchase")
+                        {
+                            totalQuantity = document.TotalQuantity - Int32.Parse(quantity);
+                            totalPrice = document.TotalPrice - Int32.Parse(quantity) * Convert.ToDecimal(purchasePrice);
+                            update = Builders<Entity>.Update
+                            .AddToSet<Purchase>(e => e.SoldStock, purchase)
+                             .Set(x => x.TotalQuantity, totalQuantity)
+                             .Set(x => x.TotalPrice, totalPrice);
+                        }
+                        
+                        
                         await collection.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true });
                     }
                 }

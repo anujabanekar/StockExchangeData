@@ -92,7 +92,7 @@ namespace StockExchangeData.Controllers
                 const string connectionString = "mongodb://localhost:27017";
                 profileData = await _profileService.GetProfileData(value);
 
-                _cache.Set("MarketSummary", profileData.Content, cacheEntryOptions);
+                _cache.Set(value, profileData.Content, cacheEntryOptions);
 
                 if (profileData.IsSuccessStatusCode)
                 {
@@ -100,25 +100,15 @@ namespace StockExchangeData.Controllers
 
                     if (content != null)
                     {
-
-                        //save to mongodb
-                        // Create a MongoClient object by using the connection string
-                        var mongoClient = new MongoClient(connectionString);
-
-                        //Use the MongoClient to access the server
-                        var database = mongoClient.GetDatabase("stockexchangedata");
-
-                        //get mongodb collection
-                        var collection = database.GetCollection<Entity>("userprofile");
-
-                        var isPresent = collection.AsQueryable().FirstOrDefault(x => x.Symbol == value) != null;
-                        if (!isPresent)
+                        var isPresent = await _mongoClientService.GetStockInformationAsync(value);
+                        if (isPresent.Count == 0)
                         {
                             var entity = new Entity
                             {
                                 Symbol = content.Result.Symbol,
                                 Price = content.Result.Price?.RegularMarketDayHigh?.Raw,
-                                AddPurchase = new List<Purchase>()
+                                AddPurchase = new List<Purchase>(),
+                                SoldStock = new List<Purchase>()
                             };
                             
                             return await _mongoClientService.InsertToUserProfileAsync(entity);
@@ -171,12 +161,12 @@ namespace StockExchangeData.Controllers
 
 
         [HttpGet]
-        [Route("EditQuantity/{symbol}/{quantity}/{purchasePrice}")]
-        public async Task<bool> EditQuantity(string symbol, string quantity, string purchasePrice)
+        [Route("SellPurchaseQuantity/{symbol}/{quantity}/{purchasePrice}")]
+        public async Task<bool> SellPurchaseQuantity(string symbol, string quantity, string purchasePrice)
         {
             try
             {
-                return await _mongoClientService.UpdateUserProfilePurchaseData(symbol, quantity, purchasePrice);
+                return await _mongoClientService.UpdateUserProfilePurchaseData(symbol, quantity, purchasePrice, "sellToPurchase");
             }
             catch(Exception e)
             {
@@ -184,6 +174,24 @@ namespace StockExchangeData.Controllers
                 
             }
             
+
+            return false;
+        }
+
+        [HttpGet]
+        [Route("AddPurchaseQuantity/{symbol}/{quantity}/{purchasePrice}")]
+        public async Task<bool> AddPurchaseQuantity(string symbol, string quantity, string purchasePrice)
+        {
+            try
+            {
+                return await _mongoClientService.UpdateUserProfilePurchaseData(symbol, quantity, purchasePrice, "addToPurchase");
+            }
+            catch (Exception e)
+            {
+                _logger.LogError($"Cannot update quantity for given symbol {symbol}");
+
+            }
+
 
             return false;
         }

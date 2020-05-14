@@ -10,7 +10,7 @@ namespace StockExchangeData.Services.Contract
 {
     public interface IMongoClientService
     {
-        Task<bool> UpdateUserProfilePurchaseData(string symbol, string quantity, string purchasePrice);
+        Task<bool> UpdateUserProfilePurchaseData(string symbol, string quantity, string purchasePrice, string v);
 
         Task<List<Entity>> GetStockInformationAsync(string symbol);
         Task<bool> DeleteStockPurchaseAsync(string symbol, ObjectId id);

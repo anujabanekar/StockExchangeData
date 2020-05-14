@@ -17,6 +17,8 @@ namespace StockExchangeData.Models.Mongo
 
         public List<Purchase> AddPurchase { get; set; }
 
+        public List<Purchase> SoldStock { get; set; }
+
         public decimal TotalPrice { get; set; }
     }
 }
