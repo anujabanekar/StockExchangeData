@@ -218,8 +218,6 @@ export class Dashboard extends Component {
         );
     }
 
-
-
     async populateStockData() {
         const response = await fetch('api/stockdata/GetProfileData');
         const data = await response.json();
@@ -244,10 +242,9 @@ export class Dashboard extends Component {
         const data = await response.json();
 
         if (data) {
-            this.getStockInformation(symbol);
-            this.calculatePortfolioValue();
+            this.getStockInformation(e, symbol);
+            this.populateStockData(e, symbol);
         }
-
     }
 
     calculatePortfolioValue() {
@@ -272,7 +269,7 @@ export class Dashboard extends Component {
 
             var success = await fetch('api/stockdata/AddToDashBoard/' + stockName.value);
             if (success) {
-                this.populateStockData();
+                this.populateStockData(e);
             }
 
         }

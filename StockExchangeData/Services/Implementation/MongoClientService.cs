@@ -88,14 +88,38 @@ namespace StockExchangeData.Services.Implementation
         {
             try
             {
+                //delete given symbol and purchase id
                 var collection = database.GetCollection<Entity>("userprofile");
 
-                var filter = Builders<Entity>.Filter.Eq("Symbol", symbol);
+                var filter = Builders<Entity>.Filter.Eq("Symbol", symbol);  
+
                 var update = Builders<Entity>.Update.PullFilter(p => p.AddPurchase,
                        Builders<Purchase>.Filter.Eq(per => per.Id, id));
 
                 var result = collection
                     .FindOneAndUpdateAsync(filter, update).Result;
+
+                //update total quantity & price. 
+
+                var filterUpdateQuantityPrice = await collection.Find(filter).ToListAsync();
+                var totalQuantity = 0;
+                decimal totalPrice = 0;
+                if (filterUpdateQuantityPrice.Count > 0)
+                {
+                    foreach (var document in filterUpdateQuantityPrice)
+                    {
+                        totalQuantity = document.AddPurchase.Sum(x => x.Quantity);
+                        foreach(var purchase in document.AddPurchase)
+                        {
+                            totalPrice += purchase.Quantity * purchase.PurchasePrice;
+                        }
+
+                        var updateQuantityPrice = Builders<Entity>.Update
+                             .Set(x => x.TotalQuantity, totalQuantity)
+                             .Set(x => x.TotalPrice, totalPrice);
+                        await collection.UpdateOneAsync(filter, updateQuantityPrice, new UpdateOptions { IsUpsert = true });
+                    }
+                }
 
                 return true;
 
